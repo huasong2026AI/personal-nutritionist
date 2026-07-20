@@ -8,7 +8,7 @@ import { WeeklyDashboard } from './components/WeeklyDashboard';
 import { SummaryAndSupplements } from './components/SummaryAndSupplements';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { MonthlyDashboard } from './components/MonthlyDashboard';
-import { Settings, Sparkles, Dumbbell, Calendar, Info, ArrowRight } from 'lucide-react';
+import { Sparkles, Dumbbell, Calendar, Info, ArrowRight } from 'lucide-react';
 
 // Seeding standard profile
 const DEFAULT_PROFILE: UserProfile = {
@@ -448,17 +448,17 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Key status indicator */}
-          <div
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Key status indicator & Direct button */}
+          <button
             onClick={() => setShowApiModal(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              backgroundColor: (apiConfig.provider === 'google' ? apiConfig.googleKey : apiConfig.deepseekKey) ? 'rgba(0, 245, 160, 0.1)' : 'rgba(255, 159, 67, 0.1)',
-              border: `1px solid ${(apiConfig.provider === 'google' ? apiConfig.googleKey : apiConfig.deepseekKey) ? 'rgba(0, 245, 160, 0.2)' : 'rgba(255, 159, 67, 0.2)'}`,
-              padding: '4px 8px',
+              gap: '6px',
+              backgroundColor: (apiConfig.provider === 'google' ? apiConfig.googleKey : apiConfig.deepseekKey) ? 'rgba(0, 245, 160, 0.12)' : 'rgba(255, 159, 67, 0.15)',
+              border: `1px solid ${(apiConfig.provider === 'google' ? apiConfig.googleKey : apiConfig.deepseekKey) ? 'rgba(0, 245, 160, 0.3)' : 'rgba(255, 159, 67, 0.3)'}`,
+              padding: '6px 10px',
               borderRadius: '20px',
               fontSize: '12px',
               cursor: 'pointer',
@@ -467,31 +467,15 @@ export default function App() {
             }}
           >
             <span style={{
-              width: '6px',
-              height: '6px',
+              width: '7px',
+              height: '7px',
               borderRadius: '50%',
               backgroundColor: (apiConfig.provider === 'google' ? apiConfig.googleKey : apiConfig.deepseekKey) ? 'var(--accent-green)' : 'var(--accent-orange)',
               boxShadow: (apiConfig.provider === 'google' ? apiConfig.googleKey : apiConfig.deepseekKey) ? '0 0 6px var(--accent-green)' : '0 0 6px var(--accent-orange)'
             }} />
             {(apiConfig.provider === 'google' ? apiConfig.googleKey : apiConfig.deepseekKey) 
-              ? `${apiConfig.provider === 'google' ? 'Google' : 'DeepSeek'} AI 已连接` 
-              : '本地模拟器模式'}
-          </div>
-
-          <button
-            onClick={() => setShowApiModal(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '8px',
-              display: 'flex',
-              backgroundColor: 'rgba(255,255,255,0.03)'
-            }}
-          >
-            <Settings size={16} />
+              ? `⚙️ ${apiConfig.provider === 'google' ? 'Google' : 'DeepSeek'} AI 已连接` 
+              : '⚙️ 点击配置 AI 密钥'}
           </button>
         </div>
       </header>
@@ -550,20 +534,29 @@ export default function App() {
                   profile.healthStatus === 'indigestion' ? '🟡消化不良🤢' : '🔵疲劳过度'
                 }</span>
                 {profile.commonFoods.length > 0 && (
-                  <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+                  <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '140px' }}>
                     🍔 喜好: {profile.commonFoods.slice(0, 3).join('/')}
                   </span>
                 )}
               </div>
             </div>
             
-            <button
-              onClick={() => setShowProfileEdit(true)}
-              className="btn-secondary"
-              style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '10px' }}
-            >
-              修改画像
-            </button>
+            <div style={{ display: 'flex', gap: '6px', flexDirection: 'column' }}>
+              <button
+                onClick={() => setShowApiModal(true)}
+                className="btn-primary"
+                style={{ padding: '5px 10px', fontSize: '12px', borderRadius: '8px' }}
+              >
+                ⚙️ AI模型配置
+              </button>
+              <button
+                onClick={() => setShowProfileEdit(true)}
+                className="btn-secondary"
+                style={{ padding: '5px 10px', fontSize: '12px', borderRadius: '8px' }}
+              >
+                修改画像
+              </button>
+            </div>
           </div>
         )}
 

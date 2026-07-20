@@ -1,25 +1,31 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { UserProfile, MealLog, MealRecommendation, SupplementRecommendation, MealType, HealthStatus, ApiConfig } from '../types';
 
-// The priorities based on RPD size in the user's screenshot
+// The priorities based on RPD size in the user's screenshot (gemini-2.5-flash removed)
 const MODEL_PRIORITY = [
   'gemini-3.1-flash-lite', // 500 RPD
-  'gemini-2.5-flash',      // 20 RPD
   'gemini-2.5-flash-lite', // 20 RPD
   'gemini-3-flash'         // 20 RPD
 ];
 
-// Helper to convert base64 image data to the format Gemini expects
+// Helper to convert base64 image data to the format Gemini expects safely
 function handleBase64Image(dataUrl: string) {
-  const parts = dataUrl.split(';base64,');
-  const mimeType = parts[0].split(':')[1];
-  const base64Data = parts[1];
-  return {
-    inlineData: {
-      data: base64Data,
-      mimeType: mimeType
-    }
-  };
+  try {
+    if (!dataUrl || !dataUrl.includes(';base64,')) return null;
+    const parts = dataUrl.split(';base64,');
+    const mimeType = parts[0].replace('data:', '') || 'image/jpeg';
+    const base64Data = parts[1];
+    if (!base64Data) return null;
+    return {
+      inlineData: {
+        data: base64Data,
+        mimeType: mimeType
+      }
+    };
+  } catch (e) {
+    console.error("Error handling base64 image:", e);
+    return null;
+  }
 }
 
 /**

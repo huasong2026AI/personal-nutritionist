@@ -207,15 +207,11 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, apiCo
                   <span style={{ color: 'var(--accent-green)' }}>500 RPD</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>2. gemini-2.5-flash (备用一)</span>
+                  <span>2. gemini-2.5-flash-lite (备用一)</span>
                   <span>20 RPD</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>3. gemini-2.5-flash-lite (备用二)</span>
-                  <span>20 RPD</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>4. gemini-3-flash (备用三)</span>
+                  <span>3. gemini-3-flash (备用二)</span>
                   <span>20 RPD</span>
                 </div>
               </div>
