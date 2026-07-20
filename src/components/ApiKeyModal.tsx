@@ -97,20 +97,25 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, apiCo
       backgroundColor: 'rgba(5, 7, 15, 0.85)',
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center',
+      alignItems: 'flex-start',
+      paddingTop: '20px',
+      paddingBottom: '20px',
+      paddingLeft: '16px',
+      paddingRight: '16px',
+      overflowY: 'auto',
       zIndex: 1000,
-      padding: '16px',
       backdropFilter: 'blur(8px)'
     }}>
       <div className="glass-card fade-in" style={{
         width: '100%',
         maxWidth: '400px',
-        padding: '24px',
+        padding: '18px 16px',
         border: '1px solid rgba(0, 242, 254, 0.2)',
         boxShadow: '0 10px 40px rgba(0, 242, 254, 0.1)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '18px'
+        gap: '14px',
+        marginTop: '10px'
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

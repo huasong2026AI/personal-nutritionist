@@ -81,8 +81,8 @@ export const ExerciseLogger: React.FC<ExerciseLoggerProps> = ({
           />
         </div>
 
-        <button type="submit" className="btn-primary" style={{ padding: '8px 10px', height: '37px', fontSize: '14px' }}>
-          <Plus size={14} /> 记一下
+        <button type="submit" className="btn-primary" style={{ padding: '8px 6px', height: '37px', fontSize: '14px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+          <Plus size={14} /> 添加
         </button>
       </form>
 
