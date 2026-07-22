@@ -363,15 +363,15 @@ export default function App() {
         apiConfig
       };
       
-      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-        JSON.stringify(backupData, null, 2)
-      )}`;
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
       const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute('href', jsonString);
+      downloadAnchor.setAttribute('href', url);
       downloadAnchor.setAttribute('download', `nutritionist_backup_${formatLocalDate(new Date())}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+      URL.revokeObjectURL(url);
     } catch (e: any) {
       alert(`数据备份导出失败: ${e.message}`);
     }
@@ -973,7 +973,7 @@ export default function App() {
               📥 导入数据恢复 (JSON)
               <input
                 type="file"
-                accept=".json"
+                accept=".json,application/json,text/plain,.txt"
                 onChange={handleImportBackup}
                 style={{ display: 'none' }}
               />
