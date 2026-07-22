@@ -242,16 +242,16 @@ export default function App() {
   const [activeSubTab, setActiveSubTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [selectedEditDate, setSelectedEditDate] = useState<string | null>(null);
 
-  const isEditingToday = !selectedEditDate || selectedEditDate === todayDateStr;
+  const isEditingToday = !selectedEditDate;
 
   // Derive active meals & activities based on the selected edit date
   const activeMeals = isEditingToday 
     ? todayMeals 
-    : (history.find(h => h.date === selectedEditDate)?.meals || []);
+    : (history.find((h: any) => h.date === selectedEditDate)?.meals || (selectedEditDate === todayDateStr ? todayMeals : []));
 
   const activeActivities = isEditingToday 
     ? todayActivities 
-    : (history.find(h => h.date === selectedEditDate)?.activities || []);
+    : (history.find((h: any) => h.date === selectedEditDate)?.activities || (selectedEditDate === todayDateStr ? todayActivities : []));
 
   // Persistence
   useEffect(() => {
@@ -284,7 +284,8 @@ export default function App() {
 
   // Add/Delete Meal (Supports both Today and History editing)
   const handleLogMeal = (log: MealLog) => {
-    if (isEditingToday) {
+    const hasArchive = history.some((h: any) => h.date === selectedEditDate);
+    if (isEditingToday || (selectedEditDate === todayDateStr && !hasArchive)) {
       setTodayMeals(prev => {
         const filtered = prev.filter((m: MealLog) => m.mealType !== log.mealType);
         return [...filtered, log];
@@ -304,7 +305,8 @@ export default function App() {
   };
 
   const handleDeleteMeal = (id: string) => {
-    if (isEditingToday) {
+    const hasArchive = history.some((h: any) => h.date === selectedEditDate);
+    if (isEditingToday || (selectedEditDate === todayDateStr && !hasArchive)) {
       setTodayMeals(prev => prev.filter((m: MealLog) => m.id !== id));
     } else {
       setHistory(prev => prev.map(h => {
@@ -321,7 +323,8 @@ export default function App() {
 
   // Add/Delete Exercise (Supports both Today and History editing)
   const handleAddActivity = (act: ActivityLog) => {
-    if (isEditingToday) {
+    const hasArchive = history.some((h: any) => h.date === selectedEditDate);
+    if (isEditingToday || (selectedEditDate === todayDateStr && !hasArchive)) {
       setTodayActivities(prev => [...prev, act]);
     } else {
       setHistory(prev => prev.map(h => {
@@ -337,7 +340,8 @@ export default function App() {
   };
 
   const handleDeleteActivity = (id: string) => {
-    if (isEditingToday) {
+    const hasArchive = history.some((h: any) => h.date === selectedEditDate);
+    if (isEditingToday || (selectedEditDate === todayDateStr && !hasArchive)) {
       setTodayActivities(prev => prev.filter((a: ActivityLog) => a.id !== id));
     } else {
       setHistory(prev => prev.map(h => {
