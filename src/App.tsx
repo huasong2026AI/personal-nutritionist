@@ -377,7 +377,7 @@ export default function App() {
     }
   };
 
-  // Import JSON backup file to overwrite local state
+  // Import JSON backup file with maximum backward compatibility and auto-backfill
   const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileReader = new FileReader();
     const file = event.target.files?.[0];
@@ -385,33 +385,64 @@ export default function App() {
 
     fileReader.onload = (e) => {
       try {
-        const parsedData = JSON.parse(e.target?.result as string);
-        
-        if (!parsedData.profile || !parsedData.history) {
-          throw new Error("备份文件格式错误，未包含画像信息或历史记录。");
+        const rawText = e.target?.result as string;
+        if (!rawText.trim()) {
+          throw new Error("文件内容为空");
         }
-
-        if (parsedData.profile) setProfile(parsedData.profile);
-        if (parsedData.todayMeals) setTodayMeals(parsedData.todayMeals);
-        if (parsedData.todayActivities) setTodayActivities(parsedData.todayActivities);
-        if (parsedData.history) setHistory(parsedData.history);
-        if (parsedData.apiConfig) setApiConfig(parsedData.apiConfig);
-
-        localStorage.setItem('nutritionist_profile', JSON.stringify(parsedData.profile));
-        localStorage.setItem('nutritionist_today_meals', JSON.stringify(parsedData.todayMeals || []));
-        localStorage.setItem('nutritionist_today_activities', JSON.stringify(parsedData.todayActivities || []));
-        localStorage.setItem('nutritionist_history', JSON.stringify(parsedData.history));
         
+        const parsedData = JSON.parse(rawText);
+        
+        // 1. Process and merge profile (with DEFAULT fallback)
+        const importedProfile = parsedData.profile || {};
+        const mergedProfile = { ...DEFAULT_PROFILE, ...importedProfile };
+        setProfile(mergedProfile);
+        localStorage.setItem('nutritionist_profile', JSON.stringify(mergedProfile));
+
+        // 2. Process today's meals
+        const importedMeals = parsedData.todayMeals || parsedData.meals || [];
+        setTodayMeals(importedMeals);
+        localStorage.setItem('nutritionist_today_meals', JSON.stringify(importedMeals));
+
+        // 3. Process today's activities
+        const importedActivities = parsedData.todayActivities || parsedData.activities || [];
+        setTodayActivities(importedActivities);
+        localStorage.setItem('nutritionist_today_activities', JSON.stringify(importedActivities));
+
+        // 4. Process and migrate history (supports legacy weekly_history keys)
+        let importedHistory = parsedData.history || 
+                              parsedData.weeklyHistory || 
+                              parsedData.weekly_history || 
+                              parsedData.weeklyRecords || 
+                              null;
+                              
+        if (!importedHistory) {
+          // If no history found, initialize with default blank days
+          importedHistory = getInitialWeeklyRecords(mergedProfile, false, 29);
+        }
+        setHistory(importedHistory);
+        localStorage.setItem('nutritionist_history', JSON.stringify(importedHistory));
+
+        // 5. Process API configs
         if (parsedData.apiConfig) {
-          localStorage.setItem('nutritionist_api_provider', parsedData.apiConfig.provider);
-          localStorage.setItem('nutritionist_google_key', parsedData.apiConfig.googleKey);
-          localStorage.setItem('nutritionist_deepseek_key', parsedData.apiConfig.deepseekKey);
+          setApiConfig(parsedData.apiConfig);
+          localStorage.setItem('nutritionist_api_provider', parsedData.apiConfig.provider || 'google');
+          localStorage.setItem('nutritionist_google_key', parsedData.apiConfig.googleKey || '');
+          localStorage.setItem('nutritionist_deepseek_key', parsedData.apiConfig.deepseekKey || '');
+        } else {
+          const provider = parsedData.provider || parsedData.apiProvider || 'google';
+          const googleKey = parsedData.googleKey || '';
+          const deepseekKey = parsedData.deepseekKey || '';
+          const newApiConfig = { provider, googleKey, deepseekKey };
+          setApiConfig(newApiConfig);
+          localStorage.setItem('nutritionist_api_provider', provider);
+          localStorage.setItem('nutritionist_google_key', googleKey);
+          localStorage.setItem('nutritionist_deepseek_key', deepseekKey);
         }
 
         alert("🎉 营养健康档案数据恢复成功！");
         window.location.reload();
       } catch (err: any) {
-        alert(`导入数据失败: ${err.message || err}`);
+        alert(`导入数据失败: ${err.message || "文件解析错误，请确保选择正确的备份 JSON 文件"}`);
       }
     };
     fileReader.readAsText(file);
