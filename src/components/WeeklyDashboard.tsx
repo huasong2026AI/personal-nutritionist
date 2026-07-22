@@ -24,9 +24,10 @@ interface DayRecordSummary {
 interface WeeklyDashboardProps {
   apiConfig: ApiConfig;
   weeklyRecords: DayRecordSummary[];
+  onSelectDay?: (date: string) => void;
 }
 
-export const WeeklyDashboard: React.FC<WeeklyDashboardProps> = ({ apiConfig, weeklyRecords }) => {
+export const WeeklyDashboard: React.FC<WeeklyDashboardProps> = ({ apiConfig, weeklyRecords, onSelectDay }) => {
   const [loading, setLoading] = useState(false);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<string | null>(null);
@@ -140,6 +141,8 @@ export const WeeklyDashboard: React.FC<WeeklyDashboardProps> = ({ apiConfig, wee
           return (
             <div
               key={i}
+              onClick={() => onSelectDay && onSelectDay(day.date)}
+              title="点击载入此日记录到今日打卡界面进行修改"
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -150,8 +153,12 @@ export const WeeklyDashboard: React.FC<WeeklyDashboardProps> = ({ apiConfig, wee
                 border: `1px solid ${borderGlow}`,
                 fontSize: '13px',
                 gap: '4px',
-                textAlign: 'center'
+                textAlign: 'center',
+                cursor: onSelectDay ? 'pointer' : 'default',
+                transition: 'transform 0.15s ease'
               }}
+              onMouseEnter={(e) => onSelectDay && (e.currentTarget.style.transform = 'scale(1.05)')}
+              onMouseLeave={(e) => onSelectDay && (e.currentTarget.style.transform = 'scale(1)')}
             >
               <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{day.dayName}</span>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{shortDate}</span>

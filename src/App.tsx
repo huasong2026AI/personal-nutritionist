@@ -236,9 +236,22 @@ export default function App() {
     return getInitialWeeklyRecords(profile, false, 29); // Generate 29 blank days
   });
 
+  const todayDateStr = formatLocalDate(new Date());
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showApiModal, setShowApiModal] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [selectedEditDate, setSelectedEditDate] = useState<string | null>(null);
+
+  const isEditingToday = !selectedEditDate || selectedEditDate === todayDateStr;
+
+  // Derive active meals & activities based on the selected edit date
+  const activeMeals = isEditingToday 
+    ? todayMeals 
+    : (history.find(h => h.date === selectedEditDate)?.meals || []);
+
+  const activeActivities = isEditingToday 
+    ? todayActivities 
+    : (history.find(h => h.date === selectedEditDate)?.activities || []);
 
   // Persistence
   useEffect(() => {
@@ -269,25 +282,74 @@ export default function App() {
     setShowProfileEdit(false);
   };
 
-  // Add/Delete Meal
+  // Add/Delete Meal (Supports both Today and History editing)
   const handleLogMeal = (log: MealLog) => {
-    setTodayMeals(prev => {
-      const filtered = prev.filter(m => m.mealType !== log.mealType);
-      return [...filtered, log];
-    });
+    if (isEditingToday) {
+      setTodayMeals(prev => {
+        const filtered = prev.filter((m: MealLog) => m.mealType !== log.mealType);
+        return [...filtered, log];
+      });
+    } else {
+      setHistory(prev => prev.map(h => {
+        if (h.date === selectedEditDate) {
+          const filtered = (h.meals || []).filter((m: MealLog) => m.mealType !== log.mealType);
+          return {
+            ...h,
+            meals: [...filtered, log]
+          };
+        }
+        return h;
+      }));
+    }
   };
 
   const handleDeleteMeal = (id: string) => {
-    setTodayMeals(prev => prev.filter(m => m.id !== id));
+    if (isEditingToday) {
+      setTodayMeals(prev => prev.filter((m: MealLog) => m.id !== id));
+    } else {
+      setHistory(prev => prev.map(h => {
+        if (h.date === selectedEditDate) {
+          return {
+            ...h,
+            meals: (h.meals || []).filter((m: MealLog) => m.id !== id)
+          };
+        }
+        return h;
+      }));
+    }
   };
 
-  // Add/Delete Exercise
+  // Add/Delete Exercise (Supports both Today and History editing)
   const handleAddActivity = (act: ActivityLog) => {
-    setTodayActivities(prev => [...prev, act]);
+    if (isEditingToday) {
+      setTodayActivities(prev => [...prev, act]);
+    } else {
+      setHistory(prev => prev.map(h => {
+        if (h.date === selectedEditDate) {
+          return {
+            ...h,
+            activities: [...(h.activities || []), act]
+          };
+        }
+        return h;
+      }));
+    }
   };
 
   const handleDeleteActivity = (id: string) => {
-    setTodayActivities(prev => prev.filter(a => a.id !== id));
+    if (isEditingToday) {
+      setTodayActivities(prev => prev.filter((a: ActivityLog) => a.id !== id));
+    } else {
+      setHistory(prev => prev.map(h => {
+        if (h.date === selectedEditDate) {
+          return {
+            ...h,
+            activities: (h.activities || []).filter((a: ActivityLog) => a.id !== id)
+          };
+        }
+        return h;
+      }));
+    }
   };
 
   // Export local state to JSON backup file
@@ -356,7 +418,6 @@ export default function App() {
   };
 
   // Compile history records including today
-  const todayDateStr = formatLocalDate(new Date());
   const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
   const todayDayName = dayNames[new Date().getDay()];
 
@@ -655,11 +716,48 @@ export default function App() {
         {activeSubTab === 'daily' ? (
           /* DAILY VIEW CONTENT */
           <>
+            {/* HISTORICAL EDIT MODE WARNING BANNER */}
+            {!isEditingToday && (
+              <div style={{
+                backgroundColor: 'rgba(255, 159, 67, 0.15)',
+                border: '1px solid var(--accent-orange)',
+                color: 'var(--accent-orange)',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                fontSize: '15px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontWeight: 600,
+                marginTop: '4px',
+                boxShadow: '0 0 10px rgba(255, 159, 67, 0.1)'
+              }}>
+                <span>📅 正在修改历史记录: {selectedEditDate}</span>
+                <button
+                  onClick={() => setSelectedEditDate(null)}
+                  className="btn-primary"
+                  style={{
+                    backgroundColor: 'var(--accent-orange)',
+                    borderColor: 'var(--accent-orange)',
+                    color: '#000',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    boxShadow: 'none'
+                  }}
+                >
+                  返回今天
+                </button>
+              </div>
+            )}
+
             {/* NUTRIENT PROGRESS BARS */}
             <NutrientBars
               profile={profile}
-              todayMeals={todayMeals}
-              todayActivities={todayActivities}
+              todayMeals={activeMeals}
+              todayActivities={activeActivities}
               weeklyRecords={fullWeeklyRecords}
             />
 
@@ -667,14 +765,14 @@ export default function App() {
             <MealSection
               apiConfig={apiConfig}
               profile={profile}
-              todayMeals={todayMeals}
+              todayMeals={activeMeals}
               onLogMeal={handleLogMeal}
               onDeleteMeal={handleDeleteMeal}
             />
 
             {/* SPORT LOG */}
             <ExerciseLogger
-              activities={todayActivities}
+              activities={activeActivities}
               onAddActivity={handleAddActivity}
               onDeleteActivity={handleDeleteActivity}
             />
@@ -683,28 +781,41 @@ export default function App() {
             <SummaryAndSupplements
               apiConfig={apiConfig}
               profile={profile}
-              todayMeals={todayMeals}
-              todayActivities={todayActivities}
+              todayMeals={activeMeals}
+              todayActivities={activeActivities}
             />
 
             {/* FOOTER ACTIONS */}
             <div style={{ display: 'flex', gap: '12px', marginTop: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-              <button onClick={handleNextDay} className="btn-secondary" style={{ flex: 1, padding: '10px', fontSize: '14px' }}>
-                归档记录并开始明天 <ArrowRight size={12} />
-              </button>
+              {isEditingToday ? (
+                <button onClick={handleNextDay} className="btn-secondary" style={{ flex: 1, padding: '10px', fontSize: '14px' }}>
+                  归档记录并开始明天 <ArrowRight size={12} />
+                </button>
+              ) : (
+                <button onClick={() => setSelectedEditDate(null)} className="btn-primary" style={{ flex: 1, padding: '10px', fontSize: '14px', backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)', color: '#000', fontWeight: 'bold' }}>
+                  保存并返回今天 ↩️
+                </button>
+              )}
             </div>
           </>
         ) : activeSubTab === 'weekly' ? (
           /* WEEKLY VIEW CONTENT */
           <>
             {/* WEEKLY CALENDAR & CUMULATIVE GAPS */}
-            <WeeklyDashboard apiConfig={apiConfig} weeklyRecords={fullWeeklyRecords} />
+            <WeeklyDashboard 
+              apiConfig={apiConfig} 
+              weeklyRecords={fullWeeklyRecords} 
+              onSelectDay={(date) => {
+                setSelectedEditDate(date);
+                setActiveSubTab('daily');
+              }}
+            />
 
             {/* WEEKLY BARS (Reuses NutrientBars component but preset to weekly mode) */}
             <NutrientBars
               profile={profile}
-              todayMeals={todayMeals}
-              todayActivities={todayActivities}
+              todayMeals={activeMeals}
+              todayActivities={activeActivities}
               weeklyRecords={fullWeeklyRecords}
             />
 
@@ -747,13 +858,20 @@ export default function App() {
           /* MONTHLY VIEW CONTENT */
           <>
             {/* MONTHLY CALENDAR & CUMULATIVE GAPS */}
-            <MonthlyDashboard apiConfig={apiConfig} monthlyRecords={fullMonthlyRecords} />
+            <MonthlyDashboard 
+              apiConfig={apiConfig} 
+              monthlyRecords={fullMonthlyRecords} 
+              onSelectDay={(date) => {
+                setSelectedEditDate(date);
+                setActiveSubTab('daily');
+              }}
+            />
 
             {/* MONTHLY BARS (Reuses NutrientBars component but preset to monthly mode) */}
             <NutrientBars
               profile={profile}
-              todayMeals={todayMeals}
-              todayActivities={todayActivities}
+              todayMeals={activeMeals}
+              todayActivities={activeActivities}
               weeklyRecords={fullMonthlyRecords}
             />
 

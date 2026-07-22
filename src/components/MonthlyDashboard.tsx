@@ -24,9 +24,10 @@ interface DayRecordSummary {
 interface MonthlyDashboardProps {
   apiConfig: ApiConfig;
   monthlyRecords: DayRecordSummary[];
+  onSelectDay?: (date: string) => void;
 }
 
-export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({ apiConfig, monthlyRecords }) => {
+export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({ apiConfig, monthlyRecords, onSelectDay }) => {
   const [loading, setLoading] = useState(false);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<string | null>(null);
@@ -130,7 +131,8 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({ apiConfig, m
           return (
             <div
               key={i}
-              title={`${day.date} [${day.dayName}] - 摄入:${dayCal}kcal / 目标:${dayTarget}kcal`}
+              onClick={() => onSelectDay && onSelectDay(day.date)}
+              title={`${day.date} [${day.dayName}] - 摄入:${dayCal}kcal / 目标:${dayTarget}kcal (点击载入此日记录修改)`}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -141,8 +143,12 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({ apiConfig, m
                 border: `1px solid ${borderGlow}`,
                 fontSize: '11px',
                 gap: '2px',
-                textAlign: 'center'
+                textAlign: 'center',
+                cursor: onSelectDay ? 'pointer' : 'default',
+                transition: 'transform 0.15s ease'
               }}
+              onMouseEnter={(e) => onSelectDay && (e.currentTarget.style.transform = 'scale(1.08)')}
+              onMouseLeave={(e) => onSelectDay && (e.currentTarget.style.transform = 'scale(1)')}
             >
               <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '11px' }}>{shortDate}</span>
               <span style={{
