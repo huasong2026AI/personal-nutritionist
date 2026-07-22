@@ -471,7 +471,13 @@ export default function App() {
   };
 
   // Compile slices for weekly (7 days) and monthly (30 days)
-  const fullHistoryRecordsRaw = [...history, todaySummaryRecord];
+  // If the user has already archived today, the history array contains todayDateStr.
+  // We only append todaySummaryRecord if today is not already archived OR the user has logged new active meals/activities.
+  // Otherwise, the empty todaySummaryRecord will overwrite the archived record in the deduplication step.
+  const todayHasArchive = history.some((h: any) => h.date === todayDateStr);
+  const includeToday = !todayHasArchive || todayMeals.length > 0 || todayActivities.length > 0;
+
+  const fullHistoryRecordsRaw = includeToday ? [...history, todaySummaryRecord] : history;
   
   // Deduplicate by date (keep the latest/newest record for each date to avoid UI duplicates)
   const fullHistoryRecords = fullHistoryRecordsRaw.reduce((acc: any[], current) => {
