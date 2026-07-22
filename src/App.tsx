@@ -32,6 +32,14 @@ const DEFAULT_PROFILE: UserProfile = {
   targetPotassium: 2500  // mg
 };
 
+// Helper to format Date to YYYY-MM-DD in local timezone (avoiding UTC timezone shifting bugs)
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Seeding past week/month history - can be initialized empty (all 0s) or filled with demo data
 const getInitialWeeklyRecords = (profile: UserProfile, fillWithDemoData = false, daysCount = 6) => {
   const dates = [];
@@ -41,7 +49,7 @@ const getInitialWeeklyRecords = (profile: UserProfile, fillWithDemoData = false,
   for (let i = daysCount; i > 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(d);
     const dayName = dayNames[d.getDay()];
 
     if (!fillWithDemoData) {
@@ -298,7 +306,7 @@ export default function App() {
       )}`;
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute('href', jsonString);
-      downloadAnchor.setAttribute('download', `nutritionist_backup_${new Date().toISOString().split('T')[0]}.json`);
+      downloadAnchor.setAttribute('download', `nutritionist_backup_${formatLocalDate(new Date())}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -348,7 +356,7 @@ export default function App() {
   };
 
   // Compile history records including today
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayDateStr = formatLocalDate(new Date());
   const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
   const todayDayName = dayNames[new Date().getDay()];
 
@@ -371,7 +379,19 @@ export default function App() {
   };
 
   // Compile slices for weekly (7 days) and monthly (30 days)
-  const fullHistoryRecords = [...history, todaySummaryRecord];
+  const fullHistoryRecordsRaw = [...history, todaySummaryRecord];
+  
+  // Deduplicate by date (keep the latest/newest record for each date to avoid UI duplicates)
+  const fullHistoryRecords = fullHistoryRecordsRaw.reduce((acc: any[], current) => {
+    const existingIndex = acc.findIndex(item => item.date === current.date);
+    if (existingIndex >= 0) {
+      acc[existingIndex] = current;
+    } else {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+
   const fullWeeklyRecords = fullHistoryRecords.slice(-7);
   const fullMonthlyRecords = fullHistoryRecords.slice(-30);
 
@@ -379,7 +399,9 @@ export default function App() {
   const handleNextDay = () => {
     if (window.confirm("确定要进入下一天吗？这会将今天的打卡记录归档到历史数据，并清空本日日志。")) {
       setHistory(prev => {
-        const updated = [...prev, {
+        // Filter out any existing record with today's date to avoid duplicates in local storage database
+        const filtered = prev.filter(d => d.date !== todayDateStr);
+        const updated = [...filtered, {
           date: todayDateStr,
           dayName: todayDayName,
           meals: todayMeals,
