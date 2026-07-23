@@ -73,15 +73,15 @@ export const SupplementLogger: React.FC<SupplementLoggerProps> = ({
   };
 
   return (
-    <div className="glass-card fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div className="glass-card fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
         <Pill size={18} style={{ color: 'var(--accent-orange)' }} />
         <h3 style={{ fontSize: '17px', fontWeight: 600 }}>今日营养补剂服食记录</h3>
       </div>
 
       {/* Logger form */}
-      <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: selectedPreset === 'custom' ? '1.2fr 1.2fr 1fr 0.8fr' : '1.5fr 1fr 0.8fr', gap: '8px', alignItems: 'end' }}>
+      <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>选择补剂</label>
@@ -89,7 +89,7 @@ export const SupplementLogger: React.FC<SupplementLoggerProps> = ({
               className="input-field"
               value={selectedPreset}
               onChange={handlePresetChange}
-              style={{ padding: '8px 10px' }}
+              style={{ padding: '8px 10px', width: '100%', boxSizing: 'border-box' }}
             >
               {presets.map(p => (
                 <option key={p.id} value={p.id}>{p.label}</option>
@@ -98,7 +98,7 @@ export const SupplementLogger: React.FC<SupplementLoggerProps> = ({
           </div>
 
           {selectedPreset === 'custom' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>补剂名称</label>
               <input
                 type="text"
@@ -106,27 +106,29 @@ export const SupplementLogger: React.FC<SupplementLoggerProps> = ({
                 className="input-field"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
-                style={{ padding: '8px 10px' }}
+                style={{ padding: '8px 10px', width: '100%', boxSizing: 'border-box' }}
                 required
               />
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>服用量</label>
-            <input
-              type="text"
-              className="input-field"
-              value={dosage}
-              onChange={(e) => setDosage(e.target.value)}
-              style={{ padding: '8px 10px' }}
-              required
-            />
-          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', alignItems: 'end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>服用量</label>
+              <input
+                type="text"
+                className="input-field"
+                value={dosage}
+                onChange={(e) => setDosage(e.target.value)}
+                style={{ padding: '8px 10px', width: '100%', boxSizing: 'border-box' }}
+                required
+              />
+            </div>
 
-          <button type="submit" className="btn-primary" style={{ padding: '8px 6px', height: '37px', fontSize: '14px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)', color: '#000' }}>
-            <Plus size={14} /> 添加
-          </button>
+            <button type="submit" className="btn-primary" style={{ padding: '8px 6px', height: '37px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', backgroundColor: 'var(--accent-orange)', borderColor: 'var(--accent-orange)', color: '#000', boxSizing: 'border-box' }}>
+              <Plus size={14} /> 添加补剂
+            </button>
+          </div>
         </div>
       </form>
 
@@ -138,19 +140,19 @@ export const SupplementLogger: React.FC<SupplementLoggerProps> = ({
             <span style={{ color: 'var(--accent-orange)' }}>共服食 {supplements.length} 种补剂</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '120px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
             {supplements.map(sup => {
               // Nutrient tip description
               const microTips = [];
               if (sup.micronutrients) {
-                if (sup.micronutrients.calcium) microTips.push(`钙 +${sup.micronutrients.calcium}mg`);
-                if (sup.micronutrients.vitaminD) microTips.push(`维D +${sup.micronutrients.vitaminD}mcg`);
-                if (sup.micronutrients.vitaminC) microTips.push(`维C +${sup.micronutrients.vitaminC}mg`);
-                if (sup.micronutrients.vitaminB12) microTips.push(`维B12 +${sup.micronutrients.vitaminB12}mcg`);
-                if (sup.micronutrients.magnesium) microTips.push(`镁 +${sup.micronutrients.magnesium}mg`);
-                if (sup.micronutrients.potassium) microTips.push(`钾 +${sup.micronutrients.potassium}mg`);
+                if (sup.micronutrients.calcium) microTips.push(`钙+${sup.micronutrients.calcium}mg`);
+                if (sup.micronutrients.vitaminD) microTips.push(`维D+${sup.micronutrients.vitaminD}mcg`);
+                if (sup.micronutrients.vitaminC) microTips.push(`维C+${sup.micronutrients.vitaminC}mg`);
+                if (sup.micronutrients.vitaminB12) microTips.push(`维B12+${sup.micronutrients.vitaminB12}mcg`);
+                if (sup.micronutrients.magnesium) microTips.push(`镁+${sup.micronutrients.magnesium}mg`);
+                if (sup.micronutrients.potassium) microTips.push(`钾+${sup.micronutrients.potassium}mg`);
               }
-              if (sup.protein) microTips.push(`蛋白质 +${sup.protein}g`);
+              if (sup.protein) microTips.push(`蛋白质+${sup.protein}g`);
               const tipStr = microTips.length > 0 ? ` (${microTips.join(', ')})` : '';
 
               return (
@@ -164,14 +166,15 @@ export const SupplementLogger: React.FC<SupplementLoggerProps> = ({
                     padding: '6px 10px',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    border: '1px solid rgba(255,255,255,0.03)'
+                    border: '1px solid rgba(255,255,255,0.03)',
+                    gap: '10px'
                   }}
                 >
-                  <span>
-                    💊 {sup.name} <span style={{ color: 'var(--text-secondary)' }}>({sup.dosage})</span>
-                    <span style={{ fontSize: '11px', color: 'var(--accent-green)', marginLeft: '6px' }}>{tipStr}</span>
+                  <span style={{ flex: 1, wordBreak: 'break-word', fontSize: '13.5px', lineHeight: '1.3' }}>
+                    💊 {sup.name} <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({sup.dosage})</span>
+                    <span style={{ fontSize: '11px', color: 'var(--accent-green)', marginLeft: '4px', display: 'block', marginTop: '2px' }}>{tipStr}</span>
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{sup.time}</span>
                     <button
                       onClick={() => onDeleteSupplement(sup.id)}
