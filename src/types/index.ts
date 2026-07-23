@@ -108,3 +108,13 @@ export interface ApiConfig {
   googleKey: string;
   deepseekKey: string;
 }
+
+export interface SupplementLog {
+  id: string;
+  name: string;
+  dosage: string;
+  time: string;
+  protein?: number;
+  calories?: number;
+  micronutrients?: Partial<Micronutrients>;
+}

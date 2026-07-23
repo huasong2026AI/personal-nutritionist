@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { UserProfile, MealLog, ActivityLog } from '../types';
+import { UserProfile, MealLog, ActivityLog, SupplementLog } from '../types';
 import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 interface NutrientBarsProps {
   profile: UserProfile;
   todayMeals: MealLog[];
   todayActivities: ActivityLog[];
+  todaySupplements?: SupplementLog[];
   weeklyRecords: {
     meals: MealLog[];
     activities: ActivityLog[];
+    supplements?: SupplementLog[];
     targetCalories: number;
     targetProtein: number;
     targetVitC: number;
@@ -26,14 +28,17 @@ export const NutrientBars: React.FC<NutrientBarsProps> = ({
   profile,
   todayMeals,
   todayActivities,
+  todaySupplements = [],
   weeklyRecords
 }) => {
   const [viewMode, setViewMode] = useState<'today' | 'weekly'>('today');
   const [showMicroDetails, setShowMicroDetails] = useState(false);
 
   // ---------------- TODAY CALCULATIONS ----------------
-  const todayEatenCal = todayMeals.reduce((sum, m) => sum + m.calories, 0);
-  const todayEatenProt = todayMeals.reduce((sum, m) => sum + m.protein, 0);
+  const todayEatenCal = todayMeals.reduce((sum, m) => sum + m.calories, 0) +
+                        todaySupplements.reduce((sum, s) => sum + (s.calories || 0), 0);
+  const todayEatenProt = todayMeals.reduce((sum, m) => sum + m.protein, 0) +
+                         todaySupplements.reduce((sum, s) => sum + (s.protein || 0), 0);
   const todayBurnedCal = todayActivities.reduce((sum, a) => sum + a.caloriesBurned, 0);
   
   const todayCalTarget = profile.targetCalories + todayBurnedCal;
@@ -41,14 +46,22 @@ export const NutrientBars: React.FC<NutrientBarsProps> = ({
   const todayProtPct = profile.targetProtein > 0 ? Math.min(100, (todayEatenProt / profile.targetProtein) * 100) : 0;
 
   // 8 Micronutrients calculations (capped at 100% per nutrient for composite score)
-  const todayEatenVitC = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminC || 0), 0);
-  const todayEatenCalcium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.calcium || 0), 0);
-  const todayEatenIron = todayMeals.reduce((sum, m) => sum + (m.micronutrients.iron || 0), 0);
-  const todayEatenZinc = todayMeals.reduce((sum, m) => sum + (m.micronutrients.zinc || 0), 0);
-  const todayEatenVitD = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminD || 0), 0);
-  const todayEatenVitB12 = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminB12 || 0), 0);
-  const todayEatenMagnesium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.magnesium || 0), 0);
-  const todayEatenPotassium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.potassium || 0), 0);
+  const todayEatenVitC = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminC || 0), 0) +
+                         todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.vitaminC || 0), 0);
+  const todayEatenCalcium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.calcium || 0), 0) +
+                            todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.calcium || 0), 0);
+  const todayEatenIron = todayMeals.reduce((sum, m) => sum + (m.micronutrients.iron || 0), 0) +
+                         todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.iron || 0), 0);
+  const todayEatenZinc = todayMeals.reduce((sum, m) => sum + (m.micronutrients.zinc || 0), 0) +
+                         todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.zinc || 0), 0);
+  const todayEatenVitD = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminD || 0), 0) +
+                         todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.vitaminD || 0), 0);
+  const todayEatenVitB12 = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminB12 || 0), 0) +
+                           todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.vitaminB12 || 0), 0);
+  const todayEatenMagnesium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.magnesium || 0), 0) +
+                              todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.magnesium || 0), 0);
+  const todayEatenPotassium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.potassium || 0), 0) +
+                              todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.potassium || 0), 0);
 
   const vitCPct = profile.targetVitaminC > 0 ? Math.min(100, (todayEatenVitC / profile.targetVitaminC) * 100) : 0;
   const calciumPct = profile.targetCalcium > 0 ? Math.min(100, (todayEatenCalcium / profile.targetCalcium) * 100) : 0;
@@ -62,21 +75,21 @@ export const NutrientBars: React.FC<NutrientBarsProps> = ({
   const todayMicroScore = (vitCPct + calciumPct + ironPct + zincPct + vitDPct + vitB12Pct + magnesiumPct + potassiumPct) / 8;
 
   // ---------------- WEEKLY CALCULATIONS ----------------
-  const weeklyEatenCal = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + m.calories, 0), 0);
-  const weeklyEatenProt = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + m.protein, 0), 0);
+  const weeklyEatenCal = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + m.calories, 0) + (day.supplements || []).reduce((s, sup) => s + (sup.calories || 0), 0), 0);
+  const weeklyEatenProt = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + m.protein, 0) + (day.supplements || []).reduce((s, sup) => s + (sup.protein || 0), 0), 0);
   const weeklyBurnedCal = weeklyRecords.reduce((sum, day) => sum + day.activities.reduce((s, a) => s + a.caloriesBurned, 0), 0);
 
   const weeklyCalTarget = weeklyRecords.reduce((sum, day) => sum + day.targetCalories, 0) + weeklyBurnedCal;
   const weeklyProtTarget = weeklyRecords.reduce((sum, day) => sum + day.targetProtein, 0);
 
-  const weeklyEatenVitC = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.vitaminC || 0), 0), 0);
-  const weeklyEatenCalcium = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.calcium || 0), 0), 0);
-  const weeklyEatenIron = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.iron || 0), 0), 0);
-  const weeklyEatenZinc = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.zinc || 0), 0), 0);
-  const weeklyEatenVitD = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.vitaminD || 0), 0), 0);
-  const weeklyEatenVitB12 = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.vitaminB12 || 0), 0), 0);
-  const weeklyEatenMagnesium = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.magnesium || 0), 0), 0);
-  const weeklyEatenPotassium = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.potassium || 0), 0), 0);
+  const weeklyEatenVitC = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.vitaminC || 0), 0) + (day.supplements || []).reduce((s, sup) => s + (sup.micronutrients?.vitaminC || 0), 0), 0);
+  const weeklyEatenCalcium = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.calcium || 0), 0) + (day.supplements || []).reduce((s, sup) => s + (sup.micronutrients?.calcium || 0), 0), 0);
+  const weeklyEatenIron = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.iron || 0), 0) + (day.supplements || []).reduce((s, sup) => s + (sup.micronutrients?.iron || 0), 0), 0);
+  const weeklyEatenZinc = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.zinc || 0), 0) + (day.supplements || []).reduce((s, sup) => s + (sup.micronutrients?.zinc || 0), 0), 0);
+  const weeklyEatenVitD = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.vitaminD || 0), 0) + (day.supplements || []).reduce((s, sup) => s + (sup.micronutrients?.vitaminD || 0), 0), 0);
+  const weeklyEatenVitB12 = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.vitaminB12 || 0), 0) + (day.supplements || []).reduce((s, sup) => s + (sup.micronutrients?.vitaminB12 || 0), 0), 0);
+  const weeklyEatenMagnesium = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.magnesium || 0), 0) + (day.supplements || []).reduce((s, sup) => s + (sup.micronutrients?.magnesium || 0), 0), 0);
+  const weeklyEatenPotassium = weeklyRecords.reduce((sum, day) => sum + day.meals.reduce((s, m) => s + (m.micronutrients.potassium || 0), 0) + (day.supplements || []).reduce((s, sup) => s + (sup.micronutrients?.potassium || 0), 0), 0);
 
   const weeklyVitCTarget = weeklyRecords.reduce((sum, day) => sum + (day.targetVitC || profile.targetVitaminC || 100), 0);
   const weeklyCalciumTarget = weeklyRecords.reduce((sum, day) => sum + (day.targetCalcium || profile.targetCalcium || 800), 0);

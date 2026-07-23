@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserProfile, MealLog, ActivityLog, HealthStatus, ApiConfig } from './types';
+import { UserProfile, MealLog, ActivityLog, HealthStatus, ApiConfig, SupplementLog } from './types';
 import { UserProfileForm } from './components/UserProfileForm';
 import { NutrientBars } from './components/NutrientBars';
 import { MealSection } from './components/MealSection';
@@ -8,6 +8,7 @@ import { WeeklyDashboard } from './components/WeeklyDashboard';
 import { SummaryAndSupplements } from './components/SummaryAndSupplements';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { MonthlyDashboard } from './components/MonthlyDashboard';
+import { SupplementLogger } from './components/SupplementLogger';
 import { Sparkles, Dumbbell, Calendar, Info, ArrowRight } from 'lucide-react';
 
 // Seeding standard profile
@@ -222,6 +223,10 @@ export default function App() {
     const saved = localStorage.getItem('nutritionist_today_activities');
     return saved ? JSON.parse(saved) : [];
   });
+  const [todaySupplements, setTodaySupplements] = useState<SupplementLog[]>(() => {
+    const saved = localStorage.getItem('nutritionist_today_supplements');
+    return saved ? JSON.parse(saved) : [];
+  });
   
   // Consolidated history storage (weekly + monthly -> single repository)
   const [history, setHistory] = useState<any[]>(() => {
@@ -253,6 +258,10 @@ export default function App() {
     ? todayActivities 
     : (history.find((h: any) => h.date === selectedEditDate)?.activities || (selectedEditDate === todayDateStr ? todayActivities : []));
 
+  const activeSupplements = isEditingToday
+    ? todaySupplements
+    : (history.find((h: any) => h.date === selectedEditDate)?.supplements || (selectedEditDate === todayDateStr ? todaySupplements : []));
+
   // Persistence
   useEffect(() => {
     localStorage.setItem('nutritionist_profile', JSON.stringify(profile));
@@ -265,6 +274,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('nutritionist_today_activities', JSON.stringify(todayActivities));
   }, [todayActivities]);
+
+  useEffect(() => {
+    localStorage.setItem('nutritionist_today_supplements', JSON.stringify(todaySupplements));
+  }, [todaySupplements]);
 
   useEffect(() => {
     localStorage.setItem('nutritionist_history', JSON.stringify(history));
@@ -356,6 +369,41 @@ export default function App() {
     }
   };
 
+  // Add/Delete Supplement (Supports both Today and History editing)
+  const handleAddSupplement = (sup: SupplementLog) => {
+    const hasArchive = history.some((h: any) => h.date === selectedEditDate);
+    if (isEditingToday || (selectedEditDate === todayDateStr && !hasArchive)) {
+      setTodaySupplements(prev => [...prev, sup]);
+    } else {
+      setHistory(prev => prev.map(h => {
+        if (h.date === selectedEditDate) {
+          return {
+            ...h,
+            supplements: [...(h.supplements || []), sup]
+          };
+        }
+        return h;
+      }));
+    }
+  };
+
+  const handleDeleteSupplement = (id: string) => {
+    const hasArchive = history.some((h: any) => h.date === selectedEditDate);
+    if (isEditingToday || (selectedEditDate === todayDateStr && !hasArchive)) {
+      setTodaySupplements(prev => prev.filter((s: SupplementLog) => s.id !== id));
+    } else {
+      setHistory(prev => prev.map(h => {
+        if (h.date === selectedEditDate) {
+          return {
+            ...h,
+            supplements: (h.supplements || []).filter((s: SupplementLog) => s.id !== id)
+          };
+        }
+        return h;
+      }));
+    }
+  };
+
   // Export local state to JSON backup file
   const handleExportBackup = () => {
     try {
@@ -363,6 +411,7 @@ export default function App() {
         profile,
         todayMeals,
         todayActivities,
+        todaySupplements,
         history,
         apiConfig
       };
@@ -411,6 +460,11 @@ export default function App() {
         const importedActivities = parsedData.todayActivities || parsedData.activities || [];
         setTodayActivities(importedActivities);
         localStorage.setItem('nutritionist_today_activities', JSON.stringify(importedActivities));
+
+        // 3.5. Process today's supplements
+        const importedSupplements = parsedData.todaySupplements || parsedData.supplements || [];
+        setTodaySupplements(importedSupplements);
+        localStorage.setItem('nutritionist_today_supplements', JSON.stringify(importedSupplements));
 
         // 4. Process and migrate history (supports legacy weekly_history keys)
         let importedHistory = parsedData.history || 
@@ -461,6 +515,7 @@ export default function App() {
     dayName: `${todayDayName}(今天)`,
     meals: todayMeals,
     activities: todayActivities,
+    supplements: todaySupplements,
     targetCalories: profile.targetCalories,
     targetProtein: profile.targetProtein,
     targetVitC: profile.targetVitaminC,
@@ -476,10 +531,10 @@ export default function App() {
 
   // Compile slices for weekly (7 days) and monthly (30 days)
   // If the user has already archived today, the history array contains todayDateStr.
-  // We only append todaySummaryRecord if today is not already archived OR the user has logged new active meals/activities.
+  // We only append todaySummaryRecord if today is not already archived OR the user has logged new active meals/activities/supplements.
   // Otherwise, the empty todaySummaryRecord will overwrite the archived record in the deduplication step.
   const todayHasArchive = history.some((h: any) => h.date === todayDateStr);
-  const includeToday = !todayHasArchive || todayMeals.length > 0 || todayActivities.length > 0;
+  const includeToday = !todayHasArchive || todayMeals.length > 0 || todayActivities.length > 0 || todaySupplements.length > 0;
 
   const fullHistoryRecordsRaw = includeToday ? [...history, todaySummaryRecord] : history;
   
@@ -508,6 +563,7 @@ export default function App() {
           dayName: todayDayName,
           meals: todayMeals,
           activities: todayActivities,
+          supplements: todaySupplements,
           targetCalories: profile.targetCalories,
           targetProtein: profile.targetProtein,
           targetVitC: profile.targetVitaminC,
@@ -524,6 +580,7 @@ export default function App() {
       });
       setTodayMeals([]);
       setTodayActivities([]);
+      setTodaySupplements([]);
     }
   };
 
@@ -799,6 +856,7 @@ export default function App() {
               profile={profile}
               todayMeals={activeMeals}
               todayActivities={activeActivities}
+              todaySupplements={activeSupplements}
               weeklyRecords={fullWeeklyRecords}
             />
 
@@ -818,12 +876,20 @@ export default function App() {
               onDeleteActivity={handleDeleteActivity}
             />
 
+            {/* SUPPLEMENTS LOG */}
+            <SupplementLogger
+              supplements={activeSupplements}
+              onAddSupplement={handleAddSupplement}
+              onDeleteSupplement={handleDeleteSupplement}
+            />
+
             {/* DIET ADVICE AND SUPPLEMENT RECOMMENDER */}
             <SummaryAndSupplements
               apiConfig={apiConfig}
               profile={profile}
               todayMeals={activeMeals}
               todayActivities={activeActivities}
+              todaySupplements={activeSupplements}
             />
 
             {/* FOOTER ACTIONS */}
@@ -857,6 +923,7 @@ export default function App() {
               profile={profile}
               todayMeals={activeMeals}
               todayActivities={activeActivities}
+              todaySupplements={activeSupplements}
               weeklyRecords={fullWeeklyRecords}
             />
 
@@ -913,6 +980,7 @@ export default function App() {
               profile={profile}
               todayMeals={activeMeals}
               todayActivities={activeActivities}
+              todaySupplements={activeSupplements}
               weeklyRecords={fullMonthlyRecords}
             />
 

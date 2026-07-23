@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserProfile, MealLog, ActivityLog, SupplementRecommendation, ApiConfig } from '../types';
+import { UserProfile, MealLog, ActivityLog, SupplementRecommendation, ApiConfig, SupplementLog } from '../types';
 import { recommendSupplements } from '../services/ai';
 import { Sparkles, Loader, Award, ShieldAlert } from 'lucide-react';
 
@@ -8,21 +8,25 @@ interface SummaryAndSupplementsProps {
   profile: UserProfile;
   todayMeals: MealLog[];
   todayActivities: ActivityLog[];
+  todaySupplements?: SupplementLog[];
 }
 
 export const SummaryAndSupplements: React.FC<SummaryAndSupplementsProps> = ({
   apiConfig,
   profile,
   todayMeals,
-  todayActivities
+  todayActivities,
+  todaySupplements = []
 }) => {
   const [loading, setLoading] = useState(false);
   const [advice, setAdvice] = useState<SupplementRecommendation | null>(null);
   const [aiStatus, setAiStatus] = useState<string | null>(null);
   const [errInfo, setErrInfo] = useState<string | null>(null);
 
-  const totalEatenCal = todayMeals.reduce((sum, m) => sum + m.calories, 0);
-  const totalEatenProt = todayMeals.reduce((sum, m) => sum + m.protein, 0);
+  const totalEatenCal = todayMeals.reduce((sum, m) => sum + m.calories, 0) +
+                        todaySupplements.reduce((sum, s) => sum + (s.calories || 0), 0);
+  const totalEatenProt = todayMeals.reduce((sum, m) => sum + m.protein, 0) +
+                         todaySupplements.reduce((sum, s) => sum + (s.protein || 0), 0);
   const totalBurnedCal = todayActivities.reduce((sum, a) => sum + a.caloriesBurned, 0);
 
   // Targets
@@ -30,14 +34,22 @@ export const SummaryAndSupplements: React.FC<SummaryAndSupplementsProps> = ({
   const targetProt = profile.targetProtein;
 
   // 8 Micronutrients eaten
-  const eatenVitC = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminC || 0), 0);
-  const eatenCalcium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.calcium || 0), 0);
-  const eatenIron = todayMeals.reduce((sum, m) => sum + (m.micronutrients.iron || 0), 0);
-  const eatenZinc = todayMeals.reduce((sum, m) => sum + (m.micronutrients.zinc || 0), 0);
-  const eatenVitD = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminD || 0), 0);
-  const eatenVitB12 = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminB12 || 0), 0);
-  const eatenMagnesium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.magnesium || 0), 0);
-  const eatenPotassium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.potassium || 0), 0);
+  const eatenVitC = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminC || 0), 0) +
+                    todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.vitaminC || 0), 0);
+  const eatenCalcium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.calcium || 0), 0) +
+                       todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.calcium || 0), 0);
+  const eatenIron = todayMeals.reduce((sum, m) => sum + (m.micronutrients.iron || 0), 0) +
+                    todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.iron || 0), 0);
+  const eatenZinc = todayMeals.reduce((sum, m) => sum + (m.micronutrients.zinc || 0), 0) +
+                    todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.zinc || 0), 0);
+  const eatenVitD = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminD || 0), 0) +
+                    todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.vitaminD || 0), 0);
+  const eatenVitB12 = todayMeals.reduce((sum, m) => sum + (m.micronutrients.vitaminB12 || 0), 0) +
+                      todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.vitaminB12 || 0), 0);
+  const eatenMagnesium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.magnesium || 0), 0) +
+                         todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.magnesium || 0), 0);
+  const eatenPotassium = todayMeals.reduce((sum, m) => sum + (m.micronutrients.potassium || 0), 0) +
+                         todaySupplements.reduce((sum, s) => sum + (s.micronutrients?.potassium || 0), 0);
 
   // Gaps (Negative = deficit, Positive = excess)
   const gapCal = Math.round(totalEatenCal - (targetCal + totalBurnedCal));
