@@ -9,6 +9,7 @@ import { SummaryAndSupplements } from './components/SummaryAndSupplements';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { MonthlyDashboard } from './components/MonthlyDashboard';
 import { SupplementLogger } from './components/SupplementLogger';
+import { ArchiveModal } from './components/ArchiveModal';
 import { Sparkles, Dumbbell, Calendar, Info, ArrowRight } from 'lucide-react';
 
 // Seeding standard profile
@@ -246,6 +247,7 @@ export default function App() {
   const [showApiModal, setShowApiModal] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [selectedEditDate, setSelectedEditDate] = useState<string | null>(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
 
   const isEditingToday = !selectedEditDate;
 
@@ -689,36 +691,54 @@ export default function App() {
   const fullWeeklyRecords = fullHistoryRecords.slice(-7);
   const fullMonthlyRecords = fullHistoryRecords.slice(-30);
 
-  // Clear current day data (Simulate Next Day)
-  const handleNextDay = () => {
-    if (window.confirm("确定要进入下一天吗？这会将今天的打卡记录归档到历史数据，并清空本日日志。")) {
-      setHistory(prev => {
-        // Filter out any existing record with today's date to avoid duplicates in local storage database
-        const filtered = prev.filter(d => d.date !== todayDateStr);
-        const updated = [...filtered, {
-          date: todayDateStr,
-          dayName: todayDayName,
-          meals: todayMeals,
-          activities: todayActivities,
-          supplements: todaySupplements,
-          targetCalories: profile.targetCalories,
-          targetProtein: profile.targetProtein,
-          targetVitC: profile.targetVitaminC,
-          targetCalcium: profile.targetCalcium,
-          targetIron: profile.targetIron,
-          targetZinc: profile.targetZinc,
-          targetVitaminD: profile.targetVitaminD,
-          targetVitaminB12: profile.targetVitaminB12,
-          targetMagnesium: profile.targetMagnesium,
-          targetPotassium: profile.targetPotassium,
-          healthStatus: profile.healthStatus
-        }];
-        return updated.slice(-60); // Keep last 60 days
-      });
-      setTodayMeals([]);
-      setTodayActivities([]);
-      setTodaySupplements([]);
-    }
+  // Confirm and save archive to a specific date (allows backfilling)
+  const handleConfirmArchive = (selectedDate: string) => {
+    setHistory(prev => {
+      // Filter out any existing record with the selected date to avoid duplicates in local storage database
+      const filtered = prev.filter(d => d.date !== selectedDate);
+      const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      let dayName = '';
+      try {
+        dayName = dayNames[new Date(selectedDate + 'T00:00:00').getDay()];
+      } catch (e) {
+        dayName = dayNames[new Date().getDay()];
+      }
+
+      const updated = [...filtered, {
+        date: selectedDate,
+        dayName: dayName,
+        meals: todayMeals,
+        activities: todayActivities,
+        supplements: todaySupplements,
+        targetCalories: profile.targetCalories,
+        targetProtein: profile.targetProtein,
+        targetVitC: profile.targetVitaminC,
+        targetCalcium: profile.targetCalcium,
+        targetIron: profile.targetIron,
+        targetZinc: profile.targetZinc,
+        targetVitaminD: profile.targetVitaminD,
+        targetVitaminB12: profile.targetVitaminB12,
+        targetMagnesium: profile.targetMagnesium,
+        targetPotassium: profile.targetPotassium,
+        healthStatus: profile.healthStatus
+      }];
+      return updated.slice(-60); // Keep last 60 days
+    });
+
+    // Clear active logs
+    setTodayMeals([]);
+    setTodayActivities([]);
+    setTodaySupplements([]);
+
+    // Clear local storage
+    localStorage.removeItem('nutritionist_today_meals');
+    localStorage.removeItem('nutritionist_today_activities');
+    localStorage.removeItem('nutritionist_today_supplements');
+
+    // Mark as archived under this date
+    localStorage.setItem('nutritionist_last_archived_date', selectedDate);
+    setToastMessage(`🎉 成功归档数据到 ${selectedDate}！`);
+    setShowArchiveModal(false);
   };
 
   const handleLoadDemoData = () => {
@@ -1059,7 +1079,7 @@ export default function App() {
             {/* FOOTER ACTIONS */}
             <div style={{ display: 'flex', gap: '12px', marginTop: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
               {isEditingToday ? (
-                <button onClick={handleNextDay} className="btn-secondary" style={{ flex: 1, padding: '10px', fontSize: '14px' }}>
+                <button onClick={() => setShowArchiveModal(true)} className="btn-secondary" style={{ flex: 1, padding: '10px', fontSize: '14px' }}>
                   归档记录并开始明天 <ArrowRight size={12} />
                 </button>
               ) : (
@@ -1224,6 +1244,17 @@ export default function App() {
         onClose={() => setShowApiModal(false)}
         apiConfig={apiConfig}
         onSave={handleSaveApiConfig}
+      />
+
+      {/* ARCHIVE MODAL (WITH DATE PICKER) */}
+      <ArchiveModal
+        isOpen={showArchiveModal}
+        onClose={() => setShowArchiveModal(false)}
+        onConfirm={handleConfirmArchive}
+        todayMeals={todayMeals}
+        todayActivities={todayActivities}
+        todaySupplements={todaySupplements}
+        todayDateStr={todayDateStr}
       />
     </div>
   );
