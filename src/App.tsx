@@ -283,6 +283,143 @@ export default function App() {
     localStorage.setItem('nutritionist_history', JSON.stringify(history));
   }, [history]);
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Auto dismiss toast
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
+  // 1. Startup check for date change (auto-archives previous day if user closed the app)
+  useEffect(() => {
+    const todayStr = formatLocalDate(new Date());
+    const lastSavedDate = localStorage.getItem('nutritionist_last_saved_date');
+    const lastArchivedDate = localStorage.getItem('nutritionist_last_archived_date');
+
+    if (lastSavedDate && lastSavedDate !== todayStr) {
+      if (lastArchivedDate !== lastSavedDate) {
+        const savedMealsStr = localStorage.getItem('nutritionist_today_meals');
+        const savedActivitiesStr = localStorage.getItem('nutritionist_today_activities');
+        const savedSupplementsStr = localStorage.getItem('nutritionist_today_supplements');
+
+        const savedMeals = savedMealsStr ? JSON.parse(savedMealsStr) : [];
+        const savedActivities = savedActivitiesStr ? JSON.parse(savedActivitiesStr) : [];
+        const savedSupplements = savedSupplementsStr ? JSON.parse(savedSupplementsStr) : [];
+
+        if (savedMeals.length > 0 || savedActivities.length > 0 || savedSupplements.length > 0) {
+          setHistory(prev => {
+            const filtered = prev.filter(d => d.date !== lastSavedDate);
+            const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            let dayName = '';
+            try {
+              dayName = dayNames[new Date(lastSavedDate + 'T00:00:00').getDay()];
+            } catch (e) {
+              dayName = dayNames[new Date().getDay()];
+            }
+
+            const updated = [...filtered, {
+              date: lastSavedDate,
+              dayName: dayName,
+              meals: savedMeals,
+              activities: savedActivities,
+              supplements: savedSupplements,
+              targetCalories: profile.targetCalories,
+              targetProtein: profile.targetProtein,
+              targetVitC: profile.targetVitaminC,
+              targetCalcium: profile.targetCalcium,
+              targetIron: profile.targetIron,
+              targetZinc: profile.targetZinc,
+              targetVitaminD: profile.targetVitaminD,
+              targetVitaminB12: profile.targetVitaminB12,
+              targetMagnesium: profile.targetMagnesium,
+              targetPotassium: profile.targetPotassium,
+              healthStatus: profile.healthStatus
+            }];
+            return updated.slice(-60);
+          });
+
+          setTodayMeals([]);
+          setTodayActivities([]);
+          setTodaySupplements([]);
+
+          localStorage.removeItem('nutritionist_today_meals');
+          localStorage.removeItem('nutritionist_today_activities');
+          localStorage.removeItem('nutritionist_today_supplements');
+
+          localStorage.setItem('nutritionist_last_archived_date', lastSavedDate);
+          setToastMessage(`已自动为您归档昨日 (${lastSavedDate}) 的健康打卡记录！`);
+        }
+      }
+    }
+    localStorage.setItem('nutritionist_last_saved_date', todayStr);
+  }, []);
+
+  // 2. Keep track of last saved date whenever logs are modified
+  useEffect(() => {
+    const todayStr = formatLocalDate(new Date());
+    localStorage.setItem('nutritionist_last_saved_date', todayStr);
+  }, [todayMeals, todayActivities, todaySupplements]);
+
+  // 3. Periodic check for crossing 22:30 (auto-archives active day if app is open)
+  useEffect(() => {
+    const checkArchiveInterval = setInterval(() => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const todayStr = formatLocalDate(now);
+      const lastArchivedDate = localStorage.getItem('nutritionist_last_archived_date');
+
+      // Past 22:30 trigger (22:30 - 23:59)
+      const isPastArchiveTime = (hours === 22 && minutes >= 30) || (hours === 23);
+
+      if (isPastArchiveTime && lastArchivedDate !== todayStr) {
+        if (todayMeals.length > 0 || todayActivities.length > 0 || todaySupplements.length > 0) {
+          setHistory(prev => {
+            const filtered = prev.filter(d => d.date !== todayStr);
+            const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const dayName = dayNames[now.getDay()];
+
+            const updated = [...filtered, {
+              date: todayStr,
+              dayName: dayName,
+              meals: todayMeals,
+              activities: todayActivities,
+              supplements: todaySupplements,
+              targetCalories: profile.targetCalories,
+              targetProtein: profile.targetProtein,
+              targetVitC: profile.targetVitaminC,
+              targetCalcium: profile.targetCalcium,
+              targetIron: profile.targetIron,
+              targetZinc: profile.targetZinc,
+              targetVitaminD: profile.targetVitaminD,
+              targetVitaminB12: profile.targetVitaminB12,
+              targetMagnesium: profile.targetMagnesium,
+              targetPotassium: profile.targetPotassium,
+              healthStatus: profile.healthStatus
+            }];
+            return updated.slice(-60);
+          });
+
+          setTodayMeals([]);
+          setTodayActivities([]);
+          setTodaySupplements([]);
+
+          localStorage.removeItem('nutritionist_today_meals');
+          localStorage.removeItem('nutritionist_today_activities');
+          localStorage.removeItem('nutritionist_today_supplements');
+
+          localStorage.setItem('nutritionist_last_archived_date', todayStr);
+          setToastMessage(`🕛 22:30 自动归档完成！今日打卡已保存并进入下一天。`);
+        }
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(checkArchiveInterval);
+  }, [todayMeals, todayActivities, todaySupplements, profile]);
+
   const handleSaveApiConfig = (config: ApiConfig) => {
     setApiConfig(config);
     localStorage.setItem('nutritionist_api_provider', config.provider);
@@ -601,6 +738,33 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {toastMessage && (
+        <div className="fade-in" style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          border: '1px solid var(--accent-orange)',
+          boxShadow: '0 4px 20px rgba(255, 159, 67, 0.25)',
+          color: '#fff',
+          padding: '12px 20px',
+          borderRadius: '12px',
+          zIndex: 9999,
+          fontSize: '14.5px',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          width: '90%',
+          maxWidth: '350px',
+          textAlign: 'center',
+          justifyContent: 'center',
+          boxSizing: 'border-box'
+        }}>
+          ✨ {toastMessage}
+        </div>
+      )}
       {/* HEADER NAVBAR */}
       <header style={{
         padding: '18px 20px',
