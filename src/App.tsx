@@ -678,7 +678,7 @@ export default function App() {
   const fullHistoryRecordsRaw = includeToday ? [...history, todaySummaryRecord] : history;
   
   // Deduplicate by date (keep the latest/newest record for each date to avoid UI duplicates)
-  const fullHistoryRecords = fullHistoryRecordsRaw.reduce((acc: any[], current) => {
+  const deduplicatedRecords = fullHistoryRecordsRaw.reduce((acc: any[], current) => {
     const existingIndex = acc.findIndex(item => item.date === current.date);
     if (existingIndex >= 0) {
       acc[existingIndex] = current;
@@ -687,6 +687,9 @@ export default function App() {
     }
     return acc;
   }, []);
+
+  // Sort chronologically by date string (so e.g. July 24th sits before July 25th)
+  const fullHistoryRecords = [...deduplicatedRecords].sort((a, b) => a.date.localeCompare(b.date));
 
   const fullWeeklyRecords = fullHistoryRecords.slice(-7);
   const fullMonthlyRecords = fullHistoryRecords.slice(-30);
